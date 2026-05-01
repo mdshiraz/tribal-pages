@@ -20,11 +20,30 @@ export async function getPersonById(id: string): Promise<Person | null> {
   return data
 }
 
+type ChildRow = { child: Person; birth_order: number | null }
+
+function sortChildren(rows: ChildRow[]): Person[] {
+  // Check if ALL children have birth years
+  const allHaveBirthYear = rows.every((r) => r.child?.birth_year)
+
+  return rows
+    .filter((r) => r.child)
+    .map((r) => ({ ...r.child, _bo: r.birth_order ?? 9999 }))
+    .sort((a, b) => {
+      if (allHaveBirthYear) {
+        // All have birth years — sort purely by birth year
+        return (a.birth_year ?? 0) - (b.birth_year ?? 0)
+      }
+      // Mixed or none have birth years — always use birth_order
+      return (a._bo as number) - (b._bo as number)
+    })
+    .map(({ _bo: _ignored, ...child }) => child as Person)
+}
+
 export async function getPersonWithFamily(personId: string): Promise<PersonWithFamily | null> {
   const person = await getPersonById(personId)
   if (!person) return null
 
-  // Get all marriages where this person is person_a or person_b
   const { data: marriagesA } = await supabase
     .from('marriages')
     .select('*')
@@ -42,7 +61,6 @@ export async function getPersonWithFamily(personId: string): Promise<PersonWithF
     ...(marriagesB ?? []),
   ]
 
-  // For each marriage, get spouse + children
   const marriagesWithData: MarriageWithSpouse[] = await Promise.all(
     allMarriages.map(async (marriage) => {
       const spouseId = marriage.person_a_id === personId
@@ -51,22 +69,18 @@ export async function getPersonWithFamily(personId: string): Promise<PersonWithF
 
       const spouse = spouseId ? await getPersonById(spouseId) : null
 
-      // Get children for this marriage
       const { data: parentChildRows } = await supabase
         .from('parent_child')
         .select('*, child:people(*)')
         .eq('marriage_id', marriage.id)
         .order('birth_order', { ascending: true })
 
-      const children: Person[] = (parentChildRows ?? [])
-        .map((row: { child: Person }) => row.child)
-        .filter(Boolean)
+      const children = sortChildren((parentChildRows ?? []) as ChildRow[])
 
       return { ...marriage, spouse, children }
     })
   )
 
-  // Get this person's own parents (find marriage where they're a child)
   const { data: parentChildRow } = await supabase
     .from('parent_child')
     .select('*, marriage:marriages(*)')
