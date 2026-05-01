@@ -81,11 +81,17 @@ export async function importGedcomToSupabase(
     const batch = families.slice(i, i + BATCH)
 
     const rows = batch.map((f) => {
-      const personAId = f.husbandId ? gedIdToUuid.get(f.husbandId) : null
-      const personBId = f.wifeId ? gedIdToUuid.get(f.wifeId) : null
+      let personAId = f.husbandId ? gedIdToUuid.get(f.husbandId) ?? null : null
+      let personBId = f.wifeId ? gedIdToUuid.get(f.wifeId) ?? null : null
+
+      // person_a_id is NOT NULL — if no husband, promote wife to person_a
+      if (!personAId && personBId) {
+        personAId = personBId
+        personBId = null
+      }
 
       // Calculate order for person_a
-      const orderKey = personAId ?? personBId ?? 'unknown'
+      const orderKey = personAId ?? 'unknown'
       const currentOrder = (marriageOrderMap.get(orderKey) ?? 0) + 1
       marriageOrderMap.set(orderKey, currentOrder)
 
@@ -158,3 +164,4 @@ export async function importGedcomToSupabase(
 
   return { peopleInserted, familiesInserted, errors }
 }
+
