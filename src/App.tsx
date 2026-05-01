@@ -12,6 +12,7 @@ import KinView from '@/pages/KinView'
 import ReportsView from '@/pages/ReportsView'
 import PrintableView from '@/pages/PrintableView'
 import PersonEdit from '@/pages/PersonEdit'
+import GedcomImport from '@/pages/GedcomImport'
 
 function ProtectedRoutes() {
   const { user, loading } = useAuth()
@@ -42,6 +43,7 @@ function ProtectedRoutes() {
         <Route path="/view/reports" component={ReportsView} />
         <Route path="/view/printable" component={PrintableView} />
         <Route path="/person/:personId/edit" component={PersonEdit} />
+        <Route path="/tools/import" component={GedcomImport} />
         <Route>
           <Redirect to="/" />
         </Route>

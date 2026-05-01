@@ -18,7 +18,7 @@ export default function TopNav() {
     { label: 'View', href: '/view/family', active: location.startsWith('/view') },
     { label: 'People', href: '/view/names' },
     { label: 'Media', href: '/media' },
-    { label: 'Tools', href: '/tools' },
+    { label: 'Tools', href: '/tools/import', active: location.startsWith('/tools') },
     { label: 'Edit', href: '/edit' },
   ]
 
